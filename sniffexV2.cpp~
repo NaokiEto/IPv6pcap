@@ -419,6 +419,10 @@ void
 got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 {
 
+    char *args_char = (char *) args;
+
+    printf("total count: %u\n", atoi(args_char));
+
 	static int count = 1;                   /* packet counter */
 	
 	/* declare pointers to packet headers */
@@ -431,9 +435,6 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	int size_tcp;
 	int size_payload;
 	
-	printf("\nPacket number %d:\n", count);
-	count++;
-	
 	/* define ethernet header */
 	ethernet = (struct sniff_ethernet*)(packet);
 	
@@ -441,24 +442,32 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
 	size_ip = IP_HL(ip)*4;
 	if (size_ip < 20) {
-		printf("   * Invalid IP header length: %u bytes\n", size_ip);
-        //num_p
+		//printf("   * Invalid IP header length: %u bytes\n", size_ip);
 		return;
 	}
+
+	printf("\nIPv4 or IPv6 Packet number %d:\n", count);
+	count++;
+
+    sprintf(args_char, "%d" , count);
+
+    args = (u_char *) args_char;
 
     if (ip->ip_vhl == 69) // bitwise operations 4 << 4 | 20 >> 2 leads to 69
     {
         printf("IPv4!\n");
-        printf("IPv4 %u\n", ip->ip_len);
+        printf("size of header is: %u bytes\n", size_ip);
     }
 
     else if (ip->ip_vhl == 170) // bitwise operations 6 << 4 | 40 >> 2 leads to 170
     {
         printf("IPv6!\n");
+        printf("size of header is: %u bytes\n", size_ip);
     }
     else
     {
         printf("Unknown address type");
+        return;
     }
 	/* print source and destination IP addresses */
 	printf("       From: %s\n", inet_ntoa(ip->ip_src));
@@ -505,8 +514,6 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	
 	/* compute tcp payload (segment) size */
 	size_payload = ntohs(ip->ip_len) - (size_ip + size_tcp);
-	
-    
 
 	/*
 	 * Print payload data; it might be binary, so don't just
@@ -537,7 +544,13 @@ int main(int argc, char **argv)
 	bpf_u_int128 net;		    	/* ip */
 	bpf_u_int32 mask32;			/* subnet mask */
 	bpf_u_int32 net32;			/* ip */
-	int num_packets = 10;			/* number of packets to capture */
+	char num_packets[] = "10";			/* number of packets to capture */
+
+
+    u_char *num_packet_pointer = (u_char *)num_packets;
+
+    char begin_num[] = "000";
+    u_char *begin_num_pointer = (u_char*)begin_num_pointer;
 
 	print_app_banner();
 
@@ -564,7 +577,7 @@ int main(int argc, char **argv)
 
     /* print capture info */
 	printf("Device: %s\n", dev->name);
-	printf("Number of packets: %d\n", num_packets);
+	printf("Number of packets: %s\n", num_packets);
 	printf("Filter expression: %s\n", filter_exp);
 
     pcap_addr* address1 = dev->addresses;
@@ -585,7 +598,14 @@ int main(int argc, char **argv)
     }
 
 	/* now we can set our callback function */
-	pcap_loop(handle, num_packets, got_packet, NULL);
+	pcap_loop(handle, atoi(num_packets) + 1, got_packet, begin_num_pointer);
+
+    printf("number %u\n", atoi((char *) begin_num_pointer));
+
+    if (atoi((char *) begin_num_pointer) < atoi(num_packets) + 1)
+    {
+        pcap_loop(handle, atoi(num_packets) - atoi((char *) begin_num_pointer) + 1, got_packet, begin_num_pointer);
+    }
 
 	/* cleanup */
     pcap_freealldevs(dev);

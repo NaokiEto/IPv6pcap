@@ -1,0 +1,11 @@
+sniffexipv6.cpp displays all traffic on the ethernet
+
+sniffexV2.cpp will try to display IPv4 and IPv6 TCP traffic only.
+
+To compile, please do the following command
+
+g++ sniffexV2.cpp -o sniffexV2 -lpcap
+
+or something along those lines
+
+
