@@ -589,7 +589,7 @@ int main(int argc, char **argv)
     // IPv4 address
     if ((address1->addr)->sa_family == AF_INET)
     {
-        printf("IPv4!\n");
+        printf("IPv4!..................................\n");
 
 	    /* get network number and mask associated with capture device */
 	    if (pcap_lookupnet(dev->name, &net32, &mask32, errbuf) == -1) {
