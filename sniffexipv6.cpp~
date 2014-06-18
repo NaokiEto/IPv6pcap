@@ -442,9 +442,41 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	size_ip = IP_HL(ip)*4;
 	if (size_ip < 20) {
 		printf("   * Invalid IP header length: %u bytes\n", size_ip);
+        //num_p
 		return;
 	}
+/*
+    else if (size_ip == 20)
+    {
+        printf("IPv4!");
+        printf("This is %u\n", ip->ip_vhl);
+    }
 
+    else if (size_ip == 40)
+    {
+        printf("IPv6!");
+        printf("This is %u\n", ip->ip_vhl);
+    }
+    else
+    {
+        printf("Unknown");
+    }
+*/
+
+    if (ip->ip_vhl == 69) // bitwise operations 4 << 4 | 20 >> 2 leads to 69
+    {
+        printf("IPv4!\n");
+        printf("IPv4 %u\n", ip->ip_len);
+    }
+
+    else if (ip->ip_vhl == 170) // bitwise operations 6 << 4 | 40 >> 2 leads to 170
+    {
+        printf("IPv6!");
+    }
+    else
+    {
+        printf("Unknown address type");
+    }
 	/* print source and destination IP addresses */
 	printf("       From: %s\n", inet_ntoa(ip->ip_src));
 	printf("         To: %s\n", inet_ntoa(ip->ip_dst));
@@ -586,12 +618,13 @@ int main(int argc, char **argv)
 	    exit(EXIT_FAILURE);
     }
 
+    /*
     // IPv4 address
     if ((address1->addr)->sa_family == AF_INET)
     {
-        printf("IPv4!..................................\n");
+        printf("IPv4!\n");
 
-	    /* get network number and mask associated with capture device */
+	    // get network number and mask associated with capture device //
 	    if (pcap_lookupnet(dev->name, &net32, &mask32, errbuf) == -1) {
 		    fprintf(stderr, "Couldn't get netmask for device %s: %s\n",
 		        dev->name, errbuf);
@@ -599,14 +632,14 @@ int main(int argc, char **argv)
 		    mask32 = 0;
 	    }
 
-	    /* compile the filter expression */
+	    // compile the filter expression //
 	    if (pcap_compile(handle, &fp, filter_exp, 0, net32) == -1) {
 		    fprintf(stderr, "Couldn't parse filter %s: %s\n",
 		        filter_exp, pcap_geterr(handle));
 		    exit(EXIT_FAILURE);
 	    }
 
-	    /* apply the compiled filter */
+	    // apply the compiled filter //
 	    if (pcap_setfilter(handle, &fp) == -1) {
 		    fprintf(stderr, "Couldn't install filter %s: %s\n",
 		        filter_exp, pcap_geterr(handle));
@@ -624,6 +657,7 @@ int main(int argc, char **argv)
     {
         printf("Some other type of address O.o\n");
     }
+    */
 
     //printf("%s\n", dev->addresses);
 

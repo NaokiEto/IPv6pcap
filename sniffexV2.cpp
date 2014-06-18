@@ -445,23 +445,6 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
         //num_p
 		return;
 	}
-/*
-    else if (size_ip == 20)
-    {
-        printf("IPv4!");
-        printf("This is %u\n", ip->ip_vhl);
-    }
-
-    else if (size_ip == 40)
-    {
-        printf("IPv6!");
-        printf("This is %u\n", ip->ip_vhl);
-    }
-    else
-    {
-        printf("Unknown");
-    }
-*/
 
     if (ip->ip_vhl == 69) // bitwise operations 4 << 4 | 20 >> 2 leads to 69
     {
@@ -476,6 +459,7 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
     else
     {
         printf("Unknown address type");
+        return;
     }
 	/* print source and destination IP addresses */
 	printf("       From: %s\n", inet_ntoa(ip->ip_src));
@@ -558,23 +542,6 @@ int main(int argc, char **argv)
 
 	print_app_banner();
 
-    /* Call the routine pcap_findalldevs() */
-    /*
-    retn = pcap_findalldevs(&dev, errbuf);
-    if (retn < 0) {
-        perror(errbuf);
-        exit(-1);
-    }
-    */
-    /* No error - not sure yet */
-    //if ((dev == NULL) && *errbuf) {
-        /* This is error */
-        //printf("Error: %s\n", errbuf);
-        //exit(-2);
-    //} else {
-        //printf("pcap_findalldevs() has identified some usable interfaces !!\n");
-        
-    //}
 
 	/* check for capture device name on command-line */
 	if (argc == 2) {
@@ -617,56 +584,6 @@ int main(int argc, char **argv)
 	    fprintf(stderr, "%s is not an Ethernet\n", dev->name);
 	    exit(EXIT_FAILURE);
     }
-
-    /*
-    // IPv4 address
-    if ((address1->addr)->sa_family == AF_INET)
-    {
-        printf("IPv4!\n");
-
-	    // get network number and mask associated with capture device //
-	    if (pcap_lookupnet(dev->name, &net32, &mask32, errbuf) == -1) {
-		    fprintf(stderr, "Couldn't get netmask for device %s: %s\n",
-		        dev->name, errbuf);
-		    net32 = 0;
-		    mask32 = 0;
-	    }
-
-	    // compile the filter expression //
-	    if (pcap_compile(handle, &fp, filter_exp, 0, net32) == -1) {
-		    fprintf(stderr, "Couldn't parse filter %s: %s\n",
-		        filter_exp, pcap_geterr(handle));
-		    exit(EXIT_FAILURE);
-	    }
-
-	    // apply the compiled filter //
-	    if (pcap_setfilter(handle, &fp) == -1) {
-		    fprintf(stderr, "Couldn't install filter %s: %s\n",
-		        filter_exp, pcap_geterr(handle));
-		    exit(EXIT_FAILURE);
-	    }
-
-    }
-    // IPv6 address
-    else if ((address1->addr)->sa_family == AF_INET6)
-    {
-        printf("IPv6!\n");
-    }
-    // some other address
-    else
-    {
-        printf("Some other type of address O.o\n");
-    }
-    */
-
-    //printf("%s\n", dev->addresses);
-
-    //printf("wut %s\n", (address1->netmask));
-
-    //std::cout << address1->addr->sa_family << std::endl;
-
-    //cout<<"IP address "<<iptos(((struct sockaddr_in *)address1->addr)->sin_addr.s_addr)<<endl;
-    /////////////
 
 	/* now we can set our callback function */
 	pcap_loop(handle, num_packets, got_packet, NULL);
