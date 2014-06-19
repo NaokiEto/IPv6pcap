@@ -421,7 +421,7 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 
     char *args_char = (char *) args;
 
-    printf("total count: %u\n", atoi(args_char));
+    //printf("total count: %u\n", atoi(args_char));
 
 	static int count = 1;                   /* packet counter */
 	
@@ -430,6 +430,10 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	const struct sniff_ip *ip;              /* The IP header */
 	const struct sniff_tcp *tcp;            /* The TCP header */
 	const u_char *payload;                    /* Packet payload */
+
+    int AFtype;
+
+    int AFtypelength;
 
 	int size_ip;
 	int size_tcp;
@@ -456,23 +460,35 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
     if (ip->ip_vhl == 69) // bitwise operations 4 << 4 | 20 >> 2 leads to 69
     {
         printf("IPv4!\n");
-        printf("size of header is: %u bytes\n", size_ip);
+        AFtype = AF_INET;
+        AFtypelength = INET_ADDRSTRLEN;
+        //printf("size of header is: %u bytes\n", size_ip);
     }
 
     else if (ip->ip_vhl == 170) // bitwise operations 6 << 4 | 40 >> 2 leads to 170
     {
         printf("IPv6!\n");
-        printf("size of header is: %u bytes\n", size_ip);
+        AFtype = AF_INET6;
+        AFtypelength = INET6_ADDRSTRLEN;
+        //printf("size of header is: %u bytes\n", size_ip);
     }
     else
     {
+        // This should never happen
         printf("Unknown address type");
         return;
     }
 	/* print source and destination IP addresses */
-	printf("       From: %s\n", inet_ntoa(ip->ip_src));
-	printf("         To: %s\n", inet_ntoa(ip->ip_dst));
-	
+    char strsrc[AFtypelength];
+    inet_ntop(AFtype, &(ip->ip_src), strsrc, AFtypelength);
+
+    printf("       From: %s\n", strsrc); // prints the source IP address
+
+    char strdst[AFtypelength];
+    inet_ntop(AFtype, &(ip->ip_dst), strdst, AFtypelength);
+
+    printf("       To: %s\n", strdst); // prints the destination IP address
+
 	/* determine protocol */	
 	switch(ip->ip_p) {
 		case IPPROTO_TCP:
@@ -538,18 +554,12 @@ int main(int argc, char **argv)
 	char errbuf[PCAP_ERRBUF_SIZE];		/* error buffer */
 	pcap_t *handle;				/* packet capture handle */
 
-	char filter_exp[] = "ip";		/* filter expression [3] */
-	struct bpf_program fp;			/* compiled filter program (expression) */
-	bpf_u_int128 mask;		    	/* subnet mask */
-	bpf_u_int128 net;		    	/* ip */
-	bpf_u_int32 mask32;			/* subnet mask */
-	bpf_u_int32 net32;			/* ip */
 	char num_packets[] = "10";			/* number of packets to capture */
 
 
     u_char *num_packet_pointer = (u_char *)num_packets;
 
-    char begin_num[] = "000";
+    char begin_num[] = "000"; // shady, but it works best with sprintf
     u_char *begin_num_pointer = (u_char*)begin_num_pointer;
 
 	print_app_banner();
@@ -578,7 +588,6 @@ int main(int argc, char **argv)
     /* print capture info */
 	printf("Device: %s\n", dev->name);
 	printf("Number of packets: %s\n", num_packets);
-	printf("Filter expression: %s\n", filter_exp);
 
     pcap_addr* address1 = dev->addresses;
 
@@ -600,7 +609,7 @@ int main(int argc, char **argv)
 	/* now we can set our callback function */
 	pcap_loop(handle, atoi(num_packets) + 1, got_packet, begin_num_pointer);
 
-    printf("number %u\n", atoi((char *) begin_num_pointer));
+    //printf("number %u\n", atoi((char *) begin_num_pointer));
 
     while (atoi((char *) begin_num_pointer) < atoi(num_packets) + 1)
     {
@@ -609,7 +618,6 @@ int main(int argc, char **argv)
 
 	/* cleanup */
     pcap_freealldevs(dev);
-	//pcap_freecode(&fp);
 	pcap_close(handle);
 
 	printf("\nCapture complete.\n");
