@@ -225,35 +225,116 @@ struct sniff_ethernet {
 };
 
 
-/* IPv4 header */
-struct sniff_ip4 {
+class Sniff_ip 
+{
+    protected:
         u_char  ip_vhl;                 /* version << 4 | header length >> 2 */
+        u_short ip_version;              /* version, should be 6 for ipv6 */
         u_char  ip_tos;                 /* type of service */
-        u_short ip_len;                 /* total length */
+        u_char ip_flow;                 /* flow label for ipv6*/
+        u_short ip_len;                 /* total length for*/
         u_short ip_id;                  /* identification */
         u_short ip_off;                 /* fragment offset field */
         #define IP_RF 0x8000            /* reserved fragment flag */
         #define IP_DF 0x4000            /* dont fragment flag */
         #define IP_MF 0x2000            /* more fragments flag */
         #define IP_OFFMASK 0x1fff       /* mask for fragmenting bits */
+        u_char  next_head;              /* next header, similar to protocol field of IPv4 */
         u_char  ip_ttl;                 /* time to live */
         u_char  ip_p;                   /* protocol */
         u_short ip_sum;                 /* checksum */
         struct  in_addr ip_src,ip_dst;  /* source and dest address */
+
+    public:
+        Sniff_ip(u_char a = ' ', u_short b = 0, u_char c = ' ', u_char d = ' ', u_short e = 0, \
+                 u_short f = 0, u_short g = 0, u_char h = ' ', u_char i = ' ', u_char j = ' ', \
+                 u_short k = 0, struct in_addr l = {}, struct in_addr m = {})
+        {
+            ip_vhl = a;
+            ip_version = b;
+            ip_tos = c;
+            ip_flow = d;
+            ip_len = e;
+            ip_id = f;
+            ip_off = g;
+            next_head = h;
+            ip_ttl = i;
+            ip_p = j;
+            ip_sum = k;
+            ip_src = l;
+            ip_dst = m;
+        }
+        virtual struct in_addr& getsource()
+        {
+            return ip_src;
+        }
+        virtual struct in_addr& getdest()
+        {
+            return ip_dst;
+        }
 };
 
-struct sniff_ip6 {
-        u_char ip_version_tos;              /* version, should be 6 */
-        u_char ip_tos_flow;                  /* type of service */
-        u_char ip_flow;                 /* flow label */
-        u_short ip_len;                  /* total length of payload only */
-        u_char next_head;               /* next header, similar to protocol field of IPv4 */
-        u_char ip_ttl;                  /* Hop limit, similar to time to live  of IPv4 */      
-        struct in_addr ip_src, ip_dst;  /* source and dest address */
+class Sniff_ip4: public Sniff_ip {
+        public:
+            Sniff_ip4(u_char a = ' ', u_char c = ' ', u_short e = 0, \
+                 u_short f = 0, u_short g = 0, u_char i = ' ', u_char j = ' ', \
+                 u_char k = 0, struct in_addr l = {}, struct in_addr m = {}): Sniff_ip(a, 0, c,' ', \
+                 e, f, g, ' ', i, j, k, l, m) {}
+        u_char getvhl()
+        {
+            return ip_vhl;
+        }
+
+        u_char getprotocol()
+        {
+            return ip_p;
+        }
+
+        u_short getlength()
+        {
+            return ip_len;
+        }
+        struct in_addr& getsource()
+        {
+            return ip_src;
+        }
+
+        struct in_addr& getdest()
+        {
+            return ip_dst;
+        }
 };
+
+class Sniff_ip6: public Sniff_ip {
+        public:
+            Sniff_ip6(u_short b = 0, u_char c = ' ', u_char d = ' ', u_short e = 0, \
+                 u_char h = ' ', u_char i = ' ', \
+                 struct in_addr l = {}, struct in_addr m = {}): Sniff_ip(' ', b, c, d, \
+                 e, 0, 0, h, i, ' ', 0, l, m) {}
+        u_char getversion()
+        {
+            return ip_version;
+        }
+
+        u_char getprotocol()
+        {
+            return next_head;
+        }
+
+        in_addr& getsource()
+        {
+            return ip_src;
+        }
+
+        in_addr& getdest()
+        {
+            return ip_dst;
+        }
+};
+
         
-#define IP_HL(ip)               (((ip)->ip_vhl) & 0x0f)
-#define IP_V(ip)                (((ip)->ip_vhl) >> 4)
+#define IP_HL(ip)               (((ip)->getvhl()) & 0x0f)
+#define IP_V(ip)                (((ip)->getvhl()) >> 4)
 
 /* TCP header */
 typedef uint128 tcp_seq;
@@ -439,18 +520,17 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	
 	/* declare pointers to packet headers */
 	const struct sniff_ethernet *ethernet;  /* The ethernet header [1] */
-	const struct sniff_ip4 *ip4;              /* The IPv4 header */
-    const struct sniff_ip6 *ip6;              /* The Ipv6 header */  
+	Sniff_ip4 *ip4;              /* The IPv4 header */
+    Sniff_ip6 *ip6;              /* The Ipv6 header */  
+    Sniff_ip *ip;
 	const struct sniff_tcp *tcp;            /* The TCP header */
 	const u_char *payload;                    /* Packet payload */
-    u_char protocol;
 
     int AFtype;
 
     int AFtypelength;
 
 	int size_ip;
-    int length; /* Corresponds to the ip_len parameter of the header */
 	int size_tcp;
 	int size_payload;
 	
@@ -458,21 +538,11 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	ethernet = (struct sniff_ethernet*)(packet);
 	
 	/* define/compute ip header offset */
-	ip4 = (struct sniff_ip4*)(packet + SIZE_ETHERNET);
-    ip6 = (struct sniff_ip6*)(packet + SIZE_ETHERNET);
+	ip4 = (Sniff_ip4*)(packet + SIZE_ETHERNET);
+    ip6 = (Sniff_ip6*)(packet + SIZE_ETHERNET);
 	size_ip = IP_HL(ip4)*4;
 
-    if (ip4->ip_vhl >> 4 != 4 && ip6->ip_version_tos >> 4 != 6)
-    {
-        // This should never happen
-        //printf("Unknown address type\n");
-        return;
-    }
-
-    printf("\nIPv4 or IPv6 Packet number %d:\n", count);
-    count++;
-
-    if (ip4->ip_vhl >> 4 == 4) // version for IPv4 is 4
+    if (ip4->getvhl() == 69) // bitwise operations 4 << 4 | 20 >> 2 leads to 69
     {
         // note that the header cannot be smaller than 20 bits (or 5 bytes) for IPv4
 	    if (size_ip < 20) {
@@ -480,110 +550,165 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 		    return;
 	    }
 
+	    printf("\nIPv4 or IPv6 Packet number %d:\n", count);
+	    count++;
+
         printf("IPv4!\n");
         AFtype = AF_INET;
         AFtypelength = INET_ADDRSTRLEN;
 
+        ip = ip4;
+
 	    /* print source and destination IP addresses */
         char strsrc[AFtypelength];
-        inet_ntop(AFtype, &(ip4->ip_src), strsrc, AFtypelength);
+        inet_ntop(AFtype, &(ip4->getsource()), strsrc, AFtypelength);
 
         printf("       From: %s\n", strsrc); // prints the source IP address
 
         char strdst[AFtypelength];
-        inet_ntop(AFtype, &(ip4->ip_dst), strdst, AFtypelength);
+        inet_ntop(AFtype, &(ip4->getdest()), strdst, AFtypelength);
 
         printf("       To: %s\n", strdst); // prints the destination IP address
 
         //printf("size of header is: %u bytes\n", size_ip);
-        
-        protocol = ip4->ip_p;
 
-        length = ip4->ip_len;
+        sprintf(args_char, "%d" , count);
+
+        args = (u_char *) args_char;
+
+	    /* determine protocol */	
+	    switch(ip4->getprotocol()) {
+		    case IPPROTO_TCP:
+			    printf("   Protocol: TCP\n");
+			    break;
+		    case IPPROTO_UDP:
+			    printf("   Protocol: UDP\n");
+			    return;
+		    case IPPROTO_ICMP:
+			    printf("   Protocol: ICMP\n");
+			    return;
+		    case IPPROTO_IP:
+			    printf("   Protocol: IP\n");
+			    return;
+		    default:
+			    printf("   Protocol: unknown\n");
+			    return;
+	    }        
     }
 
-    else if (ip6->ip_version_tos >> 4 == 6) // IPv6 has version 6
+    else if (ip6->getversion() == 6) // IPv6 has version 6
     {
-        size_ip = 40;
+	    printf("\nIPv4 or IPv6 Packet number %d:\n", count);
+	    count++;
 
         printf("IPv6!\n");
         AFtype = AF_INET6;
         AFtypelength = INET6_ADDRSTRLEN;
 
+        ip = ip6;
+
 	    /* print source and destination IP addresses */
         char strsrc[AFtypelength];
-        inet_ntop(AFtype, &(ip6->ip_src), strsrc, AFtypelength);
+        inet_ntop(AFtype, &(ip->getsource()), strsrc, AFtypelength);
 
         printf("       From: %s\n", strsrc); // prints the source IP address
 
         char strdst[AFtypelength];
-        inet_ntop(AFtype, &(ip6->ip_dst), strdst, AFtypelength);
+        inet_ntop(AFtype, &(ip->getdest()), strdst, AFtypelength);
 
         printf("       To: %s\n", strdst); // prints the destination IP address
 
-        protocol = ip6->next_head;
+        //printf("size of header is: %u bytes\n", size_ip);
 
-        length = ip6->ip_len;
+        sprintf(args_char, "%d" , count);
+
+        args = (u_char *) args_char;
+
+	    /* determine protocol */	
+	    switch(ip6->getprotocol()) {
+		    case IPPROTO_TCP:
+			    printf("   Protocol: TCP\n");
+			    break;
+		    case IPPROTO_UDP:
+			    printf("   Protocol: UDP\n");
+			    return;
+		    case IPPROTO_ICMP:
+			    printf("   Protocol: ICMP\n");
+			    return;
+		    case IPPROTO_IP:
+			    printf("   Protocol: IP\n");
+			    return;
+		    default:
+			    printf("   Protocol: unknown\n");
+			    return;
+	    }
+	
+    }
+    else
+    {
+        // This should never happen
+        //printf("Unknown address type\n");
+        return;
     }
 
-    sprintf(args_char, "%d" , count);
+	/*
+	 *  OK, this packet is TCP.
+	 */
+	
+	/* define/compute tcp header offset */
+	tcp = (struct sniff_tcp*)(packet + SIZE_ETHERNET + size_ip);
+	size_tcp = TH_OFF(tcp)*4;
+	if (size_tcp < 20) {
+		printf("   * Invalid TCP header length: %u bytes\n", size_tcp);
+		return;
+	}
+	
+	printf("   Src port: %d\n", ntohs(tcp->th_sport));
+	printf("   Dst port: %d\n", ntohs(tcp->th_dport));
 
-    args = (u_char *) args_char;
+    	
+    if (ip4->getvhl() == 69) // bitwise operations 4 << 4 | 20 >> 2 leads to 69
+    {
 
-    /* determine protocol */	
-    switch(protocol) {
-	    case IPPROTO_TCP:
-		    printf("   Protocol: TCP\n");
-		    break;
-	    case IPPROTO_UDP:
-		    printf("   Protocol: UDP\n");
-		    return;
-	    case IPPROTO_ICMP:
-		    printf("   Protocol: ICMP\n");
-		    return;
-	    case IPPROTO_IP:
-		    printf("   Protocol: IP\n");
-		    return;
-	    default:
-		    printf("   Protocol: unknown\n");
-		    return;
+	    /* define/compute tcp payload (segment) offset */
+	    payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
+	
+	    /* compute tcp payload (segment) size */
+	    size_payload = ntohs(ip4->getlength()) - (size_ip + size_tcp);
+
+	    /*
+	     * Print payload data; it might be binary, so don't just
+	     * treat it as a string.
+	     */
+        
+	    if (size_payload > 0) {
+		    printf("   Payload (%d bytes):\n", size_payload);
+		    print_payload(payload, size_payload);
+	    }
     }
 
-    /*
-     *  OK, this packet is TCP.
-     */
+    if (ip6->getversion() == 6)
+    {
+	    /* define/compute tcp payload (segment) offset */
+	    payload = (u_char *)(packet + SIZE_ETHERNET + 40 + size_tcp);
+	
+	    /* compute tcp payload (segment) size */
+	    size_payload = ntohs(40) - (size_tcp);
 
-    /* define/compute tcp header offset */
-    tcp = (struct sniff_tcp*)(packet + SIZE_ETHERNET + size_ip);
-    size_tcp = TH_OFF(tcp)*4;
-    if (size_tcp < 20) {
-	    printf("   * Invalid TCP header length: %u bytes\n", size_tcp);
-	    return;
+	    /*
+	     * Print payload data; it might be binary, so don't just
+	     * treat it as a string.
+	     */
+        
+	    if (size_payload > 0) {
+		    printf("   Payload (%d bytes):\n", size_payload);
+		    print_payload(payload, size_payload);
+	    }    
     }
-
-    printf("   Src port: %d\n", ntohs(tcp->th_sport));
-    printf("   Dst port: %d\n", ntohs(tcp->th_dport));
-
-    /* define/compute tcp payload (segment) offset */
-    payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
-
-    /* compute tcp payload (segment) size */
-    size_payload = ntohs(length) - (size_tcp);
-
-    /*
-     * Print payload data; it might be binary, so don't just
-     * treat it as a string.
-     */
     
-    if (size_payload > 0) {
-	    printf("   Payload (%d bytes):\n", size_payload);
-	    print_payload(payload, size_payload);
-    }    
 
 return;
 }
-
-
 
 int main(int argc, char **argv)
 {
