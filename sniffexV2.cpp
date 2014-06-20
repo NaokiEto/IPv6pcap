@@ -445,6 +445,8 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	const u_char *payload;                    /* Packet payload */
     u_char protocol;
 
+    struct  in_addr source, destination;
+
     int AFtype;
 
     int AFtypelength;
@@ -469,9 +471,6 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
         return;
     }
 
-    printf("\nIPv4 or IPv6 Packet number %d:\n", count);
-    count++;
-
     if (ip4->ip_vhl >> 4 == 4) // version for IPv4 is 4
     {
         // note that the header cannot be smaller than 20 bits (or 5 bytes) for IPv4
@@ -484,18 +483,8 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
         AFtype = AF_INET;
         AFtypelength = INET_ADDRSTRLEN;
 
-	    /* print source and destination IP addresses */
-        char strsrc[AFtypelength];
-        inet_ntop(AFtype, &(ip4->ip_src), strsrc, AFtypelength);
-
-        printf("       From: %s\n", strsrc); // prints the source IP address
-
-        char strdst[AFtypelength];
-        inet_ntop(AFtype, &(ip4->ip_dst), strdst, AFtypelength);
-
-        printf("       To: %s\n", strdst); // prints the destination IP address
-
-        //printf("size of header is: %u bytes\n", size_ip);
+        source = ip4->ip_src;
+        destination = ip4->ip_dst;
         
         protocol = ip4->ip_p;
 
@@ -504,31 +493,37 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 
     else if (ip6->ip_version_tos >> 4 == 6) // IPv6 has version 6
     {
-        size_ip = 40;
+        size_ip = 40; // size of header is 40
 
         printf("IPv6!\n");
         AFtype = AF_INET6;
         AFtypelength = INET6_ADDRSTRLEN;
 
-	    /* print source and destination IP addresses */
-        char strsrc[AFtypelength];
-        inet_ntop(AFtype, &(ip6->ip_src), strsrc, AFtypelength);
-
-        printf("       From: %s\n", strsrc); // prints the source IP address
-
-        char strdst[AFtypelength];
-        inet_ntop(AFtype, &(ip6->ip_dst), strdst, AFtypelength);
-
-        printf("       To: %s\n", strdst); // prints the destination IP address
+        source = ip6->ip_src;
+        destination = ip6->ip_dst;
 
         protocol = ip6->next_head;
 
         length = ip6->ip_len;
     }
 
+    printf("\nIPv4 or IPv6 Packet number %d:\n", count);
+    count++;
+
     sprintf(args_char, "%d" , count);
 
     args = (u_char *) args_char;
+
+    /* print source and destination IP addresses */
+    char strsrc[AFtypelength];
+    inet_ntop(AFtype, &(source), strsrc, AFtypelength);
+
+    printf("       From: %s\n", strsrc); // prints the source IP address
+
+    char strdst[AFtypelength];
+    inet_ntop(AFtype, &(destination), strdst, AFtypelength);
+
+    printf("       To: %s\n", strdst); // prints the destination IP address
 
     /* determine protocol */	
     switch(protocol) {
@@ -587,9 +582,6 @@ return;
 
 int main(int argc, char **argv)
 {
-    typedef uint128 bpf_u_int128;
-
-
 	pcap_if_t* dev = NULL;			/* capture device name */
 	char errbuf[PCAP_ERRBUF_SIZE];		/* error buffer */
 	pcap_t *handle;				/* packet capture handle */
