@@ -206,7 +206,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "sniffer_inet_ntop.h"
+//#include "uint128.h"
 
 /* default snap length (maximum bytes per packet to capture) */
 #define SNAP_LEN 1518
@@ -490,9 +490,17 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 
         /* print source and destination IP addresses */
         char strsrc[AFtypelength];
+        inet_ntop(AFtype, &(source), strsrc, AFtypelength);
+
+        printf("       From: %s\n", strsrc); // prints the source IP address
 
         char strdst[AFtypelength];
+        inet_ntop(AFtype, &(destination), strdst, AFtypelength);
 
+        printf("       To: %s\n", strdst); // prints the destination IP address
+
+
+        
         protocol = ip4->ip_p;
 
         length = ip4->ip_len;
@@ -504,14 +512,17 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 
         printf("IPv6!\n");
 
-        struct  in6_addr source = ip4->ip_src, destination = ip4->ip_dst;
-        AFtype = AF_INET6;
-        AFtypelength = INET6_ADDRSTRLEN;
-
         /* print source and destination IP addresses */
         char strsrc[INET6_ADDRSTRLEN];
+        inet_ntop(AF_INET6, &ip6->ip6_src, strsrc, INET6_ADDRSTRLEN);
+
+        printf("       From: %s\n", strsrc); // prints the source IP address
 
         char strdst[INET6_ADDRSTRLEN];
+        inet_ntop(AF_INET6, &ip6->ip6_dst, strdst, INET6_ADDRSTRLEN);
+
+        printf("       From: %s\n", strdst); // prints the source IP address
+
         
         protocol = ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt;
         /*
@@ -524,17 +535,15 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
     printf("\n      IPv4 or IPv6 Packet number %d:\n", count);
     count++;
 
+    printf("the size of args_char is: %lu\n", sizeof(args_char));
+
+    printf("the size of count is: %lu\n", sizeof(count));
+
     sprintf(args_char, "%d" , count);
 
-    /* Convert the IP address from binary to presentation format */
-    sniffer_inet_ntop(AFtype, source, strsrc, AFtypelength);
+    printf("howdy\n");
 
-    printf("       From: %s\n", strsrc); // prints the source IP address
-
-    sniffer_inet_ntop(AFtype, destination, strdst, AFtypelength);
-
-    printf("       From: %s\n", strdst); // prints the source IP address
-
+    //args = (u_char *) args_char;
 
     /* determine protocol */	
     switch(protocol) {
