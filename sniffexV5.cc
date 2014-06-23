@@ -206,7 +206,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "uint128.h"
 
 /* default snap length (maximum bytes per packet to capture) */
 #define SNAP_LEN 1518
@@ -261,7 +260,7 @@ struct sniff_ip6 {
 #define IP_V(ip)                (((ip)->ip_vhl) >> 4)
 
 /* TCP header */
-typedef uint128 tcp_seq;
+typedef uint32_t tcp_seq;
 
 struct sniff_tcp {
         u_short th_sport;               /* source port */
@@ -476,7 +475,6 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 
     if (ip4->ip_vhl >> 4 == 4) // version for IPv4 is 4
     {
-        return;
         // note that the header cannot be smaller than 20 bits (or 5 bytes) for IPv4
 	    if (size_ip < 20) {
 		    //printf("   * Invalid IP header length: %u bytes\n", size_ip);
@@ -537,8 +535,6 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
     count++;
 
     sprintf(args_char, "%d" , count);
-
-    args = (u_char *) args_char;
 
     /* determine protocol */	
     switch(protocol) {
@@ -607,7 +603,7 @@ int main(int argc, char **argv)
     u_char *num_packet_pointer = (u_char *)num_packets;
 
     char begin_num[] = "000"; // shady, but it works best with sprintf
-    u_char *begin_num_pointer = (u_char*)begin_num_pointer;
+    u_char *begin_num_pointer = (u_char*)begin_num;
 
 	print_app_banner();
 
