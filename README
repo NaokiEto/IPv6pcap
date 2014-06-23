@@ -4,9 +4,11 @@ sniffexV2.cpp will try to display IPv4 and IPv6 TCP traffic only
 Currently, it can display 10 packets of both IPv4 and IPv6 traffic, though 
 not necessarily TCP
 
+sniffexV5.cpp is the newest version. It uses a struct for IPv6 from bro source code.
+
 To compile, please do the following command
 
-g++ sniffexV2.cpp -o sniffexV2 -lpcap
+g++ sniffexV5.cpp -o sniffexV5 -lpcap
 
 or something along those lines
 

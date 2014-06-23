@@ -243,13 +243,18 @@ struct sniff_ip4 {
 };
 
 struct sniff_ip6 {
-        u_char ip_version_tos;              /* version, should be 6 */
-        u_char ip_tos_flow;                  /* type of service */
-        u_char ip_flow;                 /* flow label */
-        u_short ip_len;                  /* total length of payload only */
-        u_char next_head;               /* next header, similar to protocol field of IPv4 */
-        u_char ip_ttl;                  /* Hop limit, similar to time to live  of IPv4 */      
-        struct in_addr ip_src, ip_dst;  /* source and dest address */
+	union {
+		struct ip6_hdrctl {
+			uint32_t ip6_un1_flow; /* 4 bits version, 8 bits TC, 20 bits
+                                      flow-ID */
+			uint16_t ip6_un1_plen; /* payload length */
+			uint8_t  ip6_un1_nxt;  /* next header */
+			uint8_t  ip6_un1_hlim; /* hop limit */
+		} ip6_un1;
+		uint8_t ip6_un2_vfc;     /* 4 bits version, top 4 bits tclass */
+	} ip6_ctlun;
+	struct in6_addr ip6_src;   /* source address */
+	struct in6_addr ip6_dst;   /* destination address */
 };
         
 #define IP_HL(ip)               (((ip)->ip_vhl) & 0x0f)
@@ -437,15 +442,13 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 
 	static int count = 1;                   /* packet counter */
 	
-	/* declare pointers to packet headers */
-	const struct sniff_ethernet *ethernet;  /* The ethernet header [1] */
-	const struct sniff_ip4 *ip4;              /* The IPv4 header */
+    /* declare pointers to packet headers */
+    const struct sniff_ethernet *ethernet;  /* The ethernet header [1] */
+    const struct sniff_ip4 *ip4;              /* The IPv4 header */
     const struct sniff_ip6 *ip6;              /* The Ipv6 header */  
-	const struct sniff_tcp *tcp;            /* The TCP header */
-	const u_char *payload;                    /* Packet payload */
+    const struct sniff_tcp *tcp;            /* The TCP header */
+    const u_char *payload;                    /* Packet payload */
     u_char protocol;
-
-    struct  in_addr source, destination;
 
     int AFtype;
 
@@ -464,7 +467,7 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
     ip6 = (struct sniff_ip6*)(packet + SIZE_ETHERNET);
 	size_ip = IP_HL(ip4)*4;
 
-    if (ip4->ip_vhl >> 4 != 4 && ip6->ip_version_tos >> 4 != 6)
+    if (ip4->ip_vhl >> 4 != 4 && ip6->ip6_ctlun.ip6_un2_vfc >> 4 != 6)
     {
         // This should never happen
         //printf("Unknown address type\n");
@@ -481,34 +484,53 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	    }
 
         printf("IPv4!\n");
+
+        struct  in_addr source = ip4->ip_src, destination = ip4->ip_dst;
         AFtype = AF_INET;
         AFtypelength = INET_ADDRSTRLEN;
 
-        source = ip4->ip_src;
-        destination = ip4->ip_dst;
+        /* print source and destination IP addresses */
+        char strsrc[AFtypelength];
+        inet_ntop(AFtype, &(source), strsrc, AFtypelength);
+
+        printf("       From: %s\n", strsrc); // prints the source IP address
+
+        char strdst[AFtypelength];
+        inet_ntop(AFtype, &(destination), strdst, AFtypelength);
+
+        printf("       To: %s\n", strdst); // prints the destination IP address
+
+
         
         protocol = ip4->ip_p;
 
         length = ip4->ip_len;
     }
 
-    else if (ip6->ip_version_tos >> 4 == 6) // IPv6 has version 6
+    else if (ip6->ip6_ctlun.ip6_un2_vfc >> 4 == 6) // IPv6 has version 6
     {
         size_ip = 40; // size of header is 40
 
         printf("IPv6!\n");
-        AFtype = AF_INET6;
-        AFtypelength = INET6_ADDRSTRLEN;
 
-        source = ip6->ip_src;
-        destination = ip6->ip_dst;
+        /* print source and destination IP addresses */
+        char strsrc[INET6_ADDRSTRLEN];
+        inet_ntop(AF_INET6, &ip6->ip6_src, strsrc, INET6_ADDRSTRLEN);
 
+        printf("       From: %s\n", strsrc); // prints the source IP address
+
+        char strdst[INET6_ADDRSTRLEN];
+        inet_ntop(AF_INET6, &ip6->ip6_dst, strdst, INET6_ADDRSTRLEN);
+
+        printf("       From: %s\n", strdst); // prints the source IP address
+
+        
+        protocol = ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt;
         /*
-        protocol = ip6->next_head;
         printf("protocol is: %d\n", protocol);
         // Unknown protocol is probably an extension header
         */
-        length = ip6->ip_len;
+        length = ip6->ip6_ctlun.ip6_un1.ip6_un1_plen;
     }
 
     printf("\n      IPv4 or IPv6 Packet number %d:\n", count);
@@ -517,17 +539,6 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
     sprintf(args_char, "%d" , count);
 
     args = (u_char *) args_char;
-
-    /* print source and destination IP addresses */
-    char strsrc[AFtypelength];
-    inet_ntop(AFtype, &(source), strsrc, AFtypelength);
-
-    printf("       From: %s\n", strsrc); // prints the source IP address
-
-    char strdst[AFtypelength];
-    inet_ntop(AFtype, &(destination), strdst, AFtypelength);
-
-    printf("       To: %s\n", strdst); // prints the destination IP address
 
     /* determine protocol */	
     switch(protocol) {

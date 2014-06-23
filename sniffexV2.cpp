@@ -502,12 +502,15 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
         source = ip6->ip_src;
         destination = ip6->ip_dst;
 
+        /*
         protocol = ip6->next_head;
-
+        printf("protocol is: %d\n", protocol);
+        // Unknown protocol is probably an extension header
+        */
         length = ip6->ip_len;
     }
 
-    printf("\nIPv4 or IPv6 Packet number %d:\n", count);
+    printf("\n      IPv4 or IPv6 Packet number %d:\n", count);
     count++;
 
     sprintf(args_char, "%d" , count);
