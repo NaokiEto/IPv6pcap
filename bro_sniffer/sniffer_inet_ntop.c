@@ -35,8 +35,8 @@
  * sizeof(int) < 4.  sizeof(int) > 4 is fine; all the world's not a VAX.
  */
 
-static const char *bro_inet_ntop4(const u_char *src, char *dst, socklen_t size);
-static const char *bro_inet_ntop6(const u_char *src, char *dst, socklen_t size);
+static const char *sniffer_inet_ntop4(const u_char *src, char *dst, socklen_t size);
+static const char *sniffer_inet_ntop6(const u_char *src, char *dst, socklen_t size);
 
 /* char *
  * sniffer_inet_ntop(af, src, dst, size)
@@ -164,7 +164,7 @@ sniffer_inet_ntop6(const u_char *src, char *dst, socklen_t size)
 		    (best.len == 7 && words[7] != 0x0001) ||
 		    (best.len == 5 && words[5] == 0xffff) ||
 		    (best.len == 4 && words[4] == 0xffff && words[5] == 0))) {
-			if (!bro_inet_ntop4(src+12, tp, sizeof tmp - (tp - tmp)))
+			if (!sniffer_inet_ntop4(src+12, tp, sizeof tmp - (tp - tmp)))
 				return (NULL);
 			tp += strlen(tp);
 			break;

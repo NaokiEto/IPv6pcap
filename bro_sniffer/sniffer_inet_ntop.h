@@ -1,5 +1,5 @@
-#ifndef BRO_INET_NTOP_H
-#define BRO_INET_NTOP_H
+#ifndef SNIFFER_INET_NTOP_H
+#define SNIFFER_INET_NTOP_H
 
 #ifdef __cplusplus
 extern "C" {

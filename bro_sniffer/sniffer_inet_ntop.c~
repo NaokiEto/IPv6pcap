@@ -16,7 +16,7 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "bro_inet_ntop.h"
+#include "sniffer_inet_ntop.h"
 
 #include <sys/param.h>
 #include <sys/types.h>
@@ -35,8 +35,8 @@
  * sizeof(int) < 4.  sizeof(int) > 4 is fine; all the world's not a VAX.
  */
 
-static const char *bro_inet_ntop4(const u_char *src, char *dst, socklen_t size);
-static const char *bro_inet_ntop6(const u_char *src, char *dst, socklen_t size);
+static const char *sniffer_inet_ntop4(const u_char *src, char *dst, socklen_t size);
+static const char *sniffer_inet_ntop6(const u_char *src, char *dst, socklen_t size);
 
 /* char *
  * sniffer_inet_ntop(af, src, dst, size)

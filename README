@@ -13,3 +13,7 @@ g++ sniffexV5.cpp -o sniffexV5 -lpcap
 or something along those lines
 
 
+gcc -o sniffer_inet_ntop.o -c sniffer_inet_ntop.c
+
+g++ sniffexV5.cc sniffer_inet_ntop.o -o sniffexV5 -lpcap -Wall
+

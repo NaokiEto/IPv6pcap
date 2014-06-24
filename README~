@@ -8,8 +8,12 @@ sniffexV5.cpp is the newest version. It uses a struct for IPv6 from bro source c
 
 To compile, please do the following command
 
-g++ sniffexV2.cpp -o sniffexV2 -lpcap
+g++ sniffexV5.cpp -o sniffexV5 -lpcap
 
 or something along those lines
 
+
+gcc -o sniffer_inet_ntop.o -c sniffer_inet_ntop.c
+
+g++ sniffexV5.cc sniffer_inet_ntop.o -o sniffexV5 -lpcap
 

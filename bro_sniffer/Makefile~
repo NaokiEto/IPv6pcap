@@ -1,0 +1,4 @@
+OBJS=sniffexV5.o sniffer_inet_ntop.o
+
+testpoint.exe: $(OBJS)
+    gcc $(OJBS)
